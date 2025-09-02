@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tic Tac Toe</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <h1>Tic Tac Toe</h1>
+  <div id="status">Loading...</div>
+  <div id="board" class="board"></div>
+  <div class="controls">
+    <button id="resetBtn">Reset</button>
+  </div>
+
+<script>
+const api = {
+  state: () => fetch('/api/game').then(r => r.json()),
+  move: (pos) => fetch('/api/game/move', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ pos })
+  }).then(r => r.json()),
+  reset: () => fetch('/api/game/reset', { method: 'POST' }).then(r => r.json())
+};
+
+const statusEl = document.getElementById('status');
+const boardEl = document.getElementById('board');
+const resetBtn = document.getElementById('resetBtn');
+
+function render(state) {
+  statusEl.textContent = state.message || (state.winner ? `${state.winner} wins!` : state.draw ? "It's a draw." : `Turn: ${state.turn}`);
+  boardEl.innerHTML = '';
+  const gameOver = !!state.winner || state.draw;
+
+  state.board.forEach((cell, i) => {
+    const d = document.createElement('div');
+    d.className = 'cell' + (isNaN(cell) ? ' taken' : '');
+    d.textContent = isNaN(cell) ? cell : '';
+    if (!isNaN(cell) && !gameOver) {
+      d.addEventListener('click', async () => {
+        const newState = await api.move(i + 1);
+        render(newState);
+      });
+    }
+    boardEl.appendChild(d);
+  });
+}
+
+api.state().then(render);
+resetBtn.addEventListener('click', async () => render(await api.reset()));
+</script>
+</body>
+</html>
